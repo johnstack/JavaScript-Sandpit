@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Cursor with Random Color and Trail</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars when following cursor */
+        }
+
+        /* Hide the default cursor */
+        body {
+            cursor: none;
+        }
+
+        /* Create the custom blinking cursor dot */
+        .custom-cursor {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%); /* Center the cursor on the mouse */
+            z-index: 9999;
+            animation: blink 1s infinite; /* Make the dot blink */
+        }
+
+        /* Define the blinking animation */
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Style for the trail dots */
+        .trail {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: trail 1s forwards; /* Make the trail dots fade away */
+        }
+
+        /* Define the fading effect for the trail */
+        @keyframes trail {
+            0% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.5); /* Optional: Shrink the trail dots for a better effect */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="custom-cursor" id="cursor"></div>
+
+    <script>
+        const cursor = document.getElementById("cursor");
+
+        // Function to generate a random color in hex format
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Function to create a trail effect
+        function createTrail(x, y) {
+            const trailDot = document.createElement('div');
+            trailDot.classList.add('trail');
+            trailDot.style.left = `${x}px`;
+            trailDot.style.top = `${y}px`;
+
+            // Assign a random color to the trail dot
+            trailDot.style.backgroundColor = getRandomColor();
+            document.body.appendChild(trailDot);
+
+            // Remove the trail dot after the animation is finished
+            setTimeout(() => {
+                trailDot.remove();
+            }, 1000); // Matches the duration of the fade effect (1s)
+        }
+
+        document.addEventListener("mousemove", (event) => {
+            const mouseX = event.clientX;
+            const mouseY = event.clientY;
+
+            // Move the custom cursor to the mouse position
+            cursor.style.left = `${mouseX}px`;
+            cursor.style.top = `${mouseY}px`;
+
+            // Change the cursor dot's color randomly
+            cursor.style.backgroundColor = getRandomColor();
+
+            // Create a trail dot at the mouse position
+            createTrail(mouseX, mouseY);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Time-Based Background</title>
+  <style>
+    body {
+      transition: background-color 1s ease;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 20%;
+    }
+  </style>
+</head>
+<body>
+  <p>The background color changes based on the time of day.</p>
+
+  <script>
+    function setBackgroundByTime() {
+      const hour = new Date().getHours();
+      let bgColor;
+
+      if (hour >= 6 && hour < 12) {
+        // Morning
+        bgColor = "#FFD580"; // light orange
+      } else if (hour >= 12 && hour < 18) {
+        // Afternoon
+        bgColor = "#87CEEB"; // light blue
+      } else if (hour >= 18 && hour < 21) {
+        // Evening
+        bgColor = "#FFA07A"; // salmon
+      } else {
+        // Night
+        bgColor = "#2F4F4F"; // dark slate gray
+      }
+
+      document.body.style.backgroundColor = bgColor;
+    }
+
+    // Set background on page load
+    setBackgroundByTime();
+  </script>
+</body>
+</html>

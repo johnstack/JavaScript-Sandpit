@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mouse Movement Background</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      transition: background-color 0.1s linear;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: sans-serif;
+      color: #fff;
+    }
+    h1 {
+      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <h1>Move your mouse!</h1>
+
+  <script>
+    document.addEventListener('mousemove', function (e) {
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+
+      // Blue tones (cool tones)
+      const blueRed = Math.round(150 + x * 50);    // 150–200
+      const blueGreen = Math.round(180 + y * 40);  // 180–220
+      const blueBlue = Math.round(210 + x * 30);   // 210–240
+
+      // Brown tones (warm tones)
+      const brownRed = Math.round(180 + x * 40);   // 180–220
+      const brownGreen = Math.round(160 + y * 30); // 160–190
+      const brownBlue = Math.round(130 + y * 20);  // 130–150
+
+      // Blend between brown and blue tones
+      const mixFactor = 0.5; // 0 = full brown, 1 = full blue
+      const red = Math.round(brownRed * (1 - mixFactor) + blueRed * mixFactor);
+      const green = Math.round(brownGreen * (1 - mixFactor) + blueGreen * mixFactor);
+      const blue = Math.round(brownBlue * (1 - mixFactor) + blueBlue * mixFactor);
+
+      document.body.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
+    });
+  </script>
+</body>
