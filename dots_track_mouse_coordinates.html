@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mouse Tracker with Dot</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: white;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      font-size: 24px;
+      overflow: hidden;
+    }
+
+    #coords {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: black;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      z-index: 1000;
+    }
+
+    .tracker-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    #dot-horizontal {
+      top: 50px;
+      transform: translateY(-50%);
+    }
+
+    #dot-vertical {
+      left: 50px;
+      transform: translateX(-50%);
+    }
+  </style>
+</head>
+<body>
+  <div id="coords">X: 0, Y: 0</div>
+  <div id="dot-horizontal" class="tracker-dot"></div>
+  <div id="dot-vertical" class="tracker-dot"></div>
+
+  <script>
+    const coordsDisplay = document.getElementById('coords');
+    const dotH = document.getElementById('dot-horizontal');
+    const dotV = document.getElementById('dot-vertical');
+
+    document.addEventListener('mousemove', (e) => {
+      const { clientX, clientY } = e;
+
+      coordsDisplay.textContent = `X: ${clientX}, Y: ${clientY}`;
+
+      dotH.style.left = `${clientX}px`;
+      dotV.style.top = `${clientY}px`;
+    });
+  </script>
+</body>
+</html>
