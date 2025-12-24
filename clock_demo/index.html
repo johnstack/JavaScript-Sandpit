@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clock demo</title>
+
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: white;
+    }
+
+    .clock {
+      position: relative;
+      width: 300px;
+      height: 300px;
+    }
+
+    .hand {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform-origin: 50% 50%; /* center */
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    /* Optional sizing */
+    #hours   { height: 600px; }
+    #minutes { height: 600px; }
+    #seconds { height: 600px; }
+  </style>
+</head>
+
+<body>
+  <div class="clock">
+    <img src="hours.png"   id="hours"   class="hand">
+    <img src="minutes.png" id="minutes" class="hand">
+    <img src="seconds.png" id="seconds" class="hand">
+  </div>
+
+  <script>
+    const h = document.getElementById("hours");
+    const m = document.getElementById("minutes");
+    const s = document.getElementById("seconds");
+
+    function updateClock() {
+      const now = new Date();
+
+      const seconds = now.getSeconds();
+      const minutes = now.getMinutes() + seconds / 60;
+      const hours   = (now.getHours() % 12) + minutes / 60;
+
+      h.style.transform = `translate(-50%, -50%) rotate(${hours * 30}deg)`;
+      m.style.transform = `translate(-50%, -50%) rotate(${minutes * 6}deg)`;
+      s.style.transform = `translate(-50%, -50%) rotate(${seconds * 6}deg)`;
+    }
+
+    updateClock();
+    setInterval(updateClock, 10);
+  </script>
+</body>
+</html>
