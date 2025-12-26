@@ -43,8 +43,8 @@
     }
 
     /* Scale individual hands */
-    #hours   { height: 90%; }
-    #minutes { height: 90%; }
+    #hours   { height: 30%; }
+    #minutes { height: 60%; }
     #seconds { height: 90%; }
 
   </style>
@@ -52,10 +52,10 @@
 
 <body>
   <div class="clock">
-    <img src="background.png" class="background" alt="Clock background">
-    <img src="hours.png"   id="hours"   class="hand">
-    <img src="minutes.png" id="minutes" class="hand">
-    <img src="seconds.png" id="seconds" class="hand">
+    <!-- ><img src="background.png" class="background" alt="Clock background"> -->
+    <img src="hours.png"   id="hours"   class="hand" style="opacity:0.7">
+    <img src="minutes.png" id="minutes" class="hand" style="opacity:0.7">
+    <img src="seconds.png" id="seconds" class="hand" style="opacity:0.7">
   </div>
 
   <script>
