@@ -39,21 +39,156 @@
   </div>
 
   <script>
+    fetch('https:/<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Collection Browser</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    .layout {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .main {
+      text-align: center;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .main.fade {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .main img {
+      max-width: 60vw;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .similar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .similar img {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      cursor: pointer;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: transform 0.2s ease;
+    }
+
+    .similar img:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="main" id="main">
+      <h1 id="title">Loading...</h1>
+      <img id="image" />
+    </div>
+    <div class="similar" id="similar"></div>
+  </div>
+
+  <script>
+    let collection = [];
+    let currentIndex = 0;
+
+    // --- Simple ML: TF-IDF cosine similarity on titles ---
+    function tokenize(text) {
+      return text.toLowerCase().split(/\W+/).filter(Boolean);
+    }
+
+    function buildTf(tokens) {
+      const tf = {};
+      tokens.forEach(t => tf[t] = (tf[t] || 0) + 1);
+      return tf;
+    }
+
+    function cosine(a, b) {
+      let dot = 0, magA = 0, magB = 0;
+      for (const k in a) {
+        if (b[k]) dot += a[k] * b[k];
+        magA += a[k] * a[k];
+      }
+      for (const k in b) magB += b[k] * b[k];
+      return dot / (Math.sqrt(magA) * Math.sqrt(magB) || 1);
+    }
+
+    function findSimilar(index, count = 4) {
+      const baseTf = collection[index].tf;
+      return collection
+        .map((item, i) => ({
+          index: i,
+          score: i === index ? -1 : cosine(baseTf, item.tf)
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, count);
+    }
+
+    function render(index) {
+      const main = document.getElementById('main');
+      main.classList.add('fade');
+
+      setTimeout(() => {
+        currentIndex = index;
+        const item = collection[index];
+        document.getElementById('title').textContent = item.Title;
+        document.getElementById('image').src = item['Image URL'];
+
+        const similarDiv = document.getElementById('similar');
+        similarDiv.innerHTML = '';
+
+        findSimilar(index).forEach(sim => {
+          const img = document.createElement('img');
+          img.src = collection[sim.index]['Image URL'];
+          img.title = collection[sim.index].Title;
+          img.onclick = () => render(sim.index);
+          similarDiv.appendChild(img);
+        });
+
+        main.classList.remove('fade');
+      }, 300);
+    }
+
     fetch('https://johnstack.github.io/JavaScript-Sandpit/ng_sandbox/collection.json')
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
-        if (!Array.isArray(data) || data.length === 0) {
-          throw new Error('collection.json is empty or not an array');
-        }
+        collection = data.map(item => ({
+          ...item,
+          tf: buildTf(tokenize(item.Title || ''))
+        }));
 
-        const randomEntry = data[Math.floor(Math.random() * data.length)];
-
-        document.getElementById('title').textContent = randomEntry['Title'] || 'Untitled';
-        document.getElementById('image').src = randomEntry['Image URL'] || '';
+        const start = Math.floor(Math.random() * collection.length);
+        render(start);
       })
-      .catch(error => {
-        document.getElementById('title').textContent = 'Error loading collection';
-        console.error(error);
+      .catch(err => {
+        document.getElementById('title').textContent = 'Failed to load collection';
+        console.error(err);
       });
   </script>
 </body>
