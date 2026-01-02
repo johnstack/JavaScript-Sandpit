@@ -3,131 +3,158 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Camera + Visual Search</title>
+  <title>Camera Visual Search (Cached Embeddings)</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@3.1.0/dist/mobilenet.min.js"></script>
+
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 1em; }
-    video, canvas { width: 100%; max-width: 400px; }
-    #result-img { margin-top: 1em; max-width: 400px; }
+    video, canvas, img { width: 100%; max-width: 400px; }
+    #status { margin: 1em 0; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <h1>Visual Search from Camera</h1>
+  <h1>Visual Search</h1>
+  <p id="status">Loading model…</p>
 
   <video id="video" autoplay playsinline></video>
   <br />
-  <button id="capture-btn">Take Photo</button>
+  <button id="capture-btn" disabled>Take Photo</button>
 
-  <canvas id="capture-canvas" style="display:none;"></canvas>
-  
-  <h2>Most Similar Match:</h2>
-  <img id="result-img" alt="Matching image will appear here">
+  <canvas id="canvas" style="display:none;"></canvas>
 
-  <script>
-    let model;
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("capture-canvas");
-    const ctx = canvas.getContext("2d");
-    const resultImg = document.getElementById("result-img");
+  <h2>Best Match</h2>
+  <img id="result-img" />
 
-    // 1️⃣ Start camera
-    async function startCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
-    }
+<script>
+let model;
+let collectionEmbeddings = []; // { url, embedding }
 
-    // 2️⃣ Load MobileNet
-    async function loadModel() {
-      model = await mobilenet.load();
-      console.log("MobileNet loaded");
-    }
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+const resultImg = document.getElementById("result-img");
+const captureBtn = document.getElementById("capture-btn");
 
-    // 3️⃣ Fetch JSON collection
-    async function loadCollection() {
-      const res = await fetch(
-        "https://johnstack.github.io/JavaScript-Sandpit/ng_sandbox/collection.sample.json"
-      );
-      const json = await res.json();
-      return json.items; // adjust based on JSON structure
-    }
+/* ------------------ Camera ------------------ */
+async function startCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+}
 
-    // 4️⃣ Compute embedding
-    async function getEmbedding(imgElement) {
-      const logits = model.infer(imgElement, "conv_preds");
-      return logits.dataSync(); // embedding vector
-    }
+/* ------------------ Model ------------------ */
+async function loadModel() {
+  model = await mobilenet.load({ version: 2, alpha: 1.0 });
+  console.log("MobileNet loaded");
+}
 
-    // 5️⃣ Compute cosine similarity
-    function cosineSim(a, b) {
-      let dot = 0, magA = 0, magB = 0;
-      for (let i = 0; i < a.length; i++) {
-        dot += a[i] * b[i];
-        magA += a[i] * a[i];
-        magB += b[i] * b[i];
-      }
-      return dot / (Math.sqrt(magA) * Math.sqrt(magB));
-    }
+/* ------------------ JSON ------------------ */
+async function loadCollection() {
+  const res = await fetch(
+    "https://johnstack.github.io/JavaScript-Sandpit/ng_sandbox/collection.sample.json"
+  );
+  const json = await res.json();
+  return json.items; // adjust if structure differs
+}
 
-    // 6️⃣ Find nearest
-    async function findNearest(captureImg, collection) {
-      const captureEmbedding = await getEmbedding(captureImg);
+/* ------------------ Embeddings ------------------ */
+async function getEmbedding(img) {
+  const tensor = tf.browser.fromPixels(img)
+    .resizeNearestNeighbor([224, 224])
+    .toFloat()
+    .expandDims();
 
-      let bestSim = -1;
-      let bestImg = null;
+  const embedding = model.infer(tensor, "conv_preds");
+  const data = embedding.dataSync();
 
-      for (let item of collection) {
-        // load collection image
-        const tempImg = new Image();
-        tempImg.crossOrigin = "anonymous";
-        tempImg.src = item.url; // adjust if JSON key differs
+  tensor.dispose();
+  embedding.dispose();
 
-        await new Promise((resolve) => {
-          tempImg.onload = resolve;
-          tempImg.onerror = resolve; // skip broken links
-        });
+  return data;
+}
 
-        const emb = await getEmbedding(tempImg);
-        const sim = cosineSim(captureEmbedding, emb);
+/* ------------------ Similarity ------------------ */
+function cosineSimilarity(a, b) {
+  let dot = 0, magA = 0, magB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+}
 
-        if (sim > bestSim) {
-          bestSim = sim;
-          bestImg = item.url;
-        }
-      }
-      return bestImg;
-    }
+/* ------------------ Preload Embeddings ------------------ */
+async function preloadEmbeddings() {
+  statusEl.textContent = "Loading image collection…";
 
+  const items = await loadCollection();
 
-    // 🔘 Capture button logic
-    document.getElementById("capture-btn").addEventListener("click", async () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0);
+  for (let item of items) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = item.url; // adjust key if needed
 
-      const dataUrl = canvas.toDataURL("image/jpeg");
-      const captureImg = new Image();
-      captureImg.src = dataUrl;
+    await new Promise(resolve => img.onload = resolve);
 
-      captureImg.onload = async () => {
-        resultImg.src = "Searching...";
-        const collection = await loadCollection();
-        const nearestUrl = await findNearest(captureImg, collection);
-
-        if (nearestUrl) {
-          resultImg.src = nearestUrl;
-        } else {
-          resultImg.alt = "No similar image found";
-        }
-      };
+    const embedding = await getEmbedding(img);
+    collectionEmbeddings.push({
+      url: item.url,
+      embedding
     });
 
+    statusEl.textContent = `Indexed ${collectionEmbeddings.length}/${items.length}`;
+  }
 
-    // Initialize
-    startCamera();
-    loadModel();
-  </script>
+  statusEl.textContent = "Ready! Take a photo.";
+  captureBtn.disabled = false;
+}
+
+/* ------------------ Search ------------------ */
+async function findBestMatch(capturedImg) {
+  const captureEmbedding = await getEmbedding(capturedImg);
+
+  let bestScore = -1;
+  let bestMatch = null;
+
+  for (let item of collectionEmbeddings) {
+    const score = cosineSimilarity(captureEmbedding, item.embedding);
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = item.url;
+    }
+  }
+
+  return bestMatch;
+}
+
+/* ------------------ Capture ------------------ */
+captureBtn.addEventListener("click", async () => {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0);
+
+  const img = new Image();
+  img.src = canvas.toDataURL("image/jpeg");
+
+  img.onload = async () => {
+    statusEl.textContent = "Searching…";
+    const match = await findBestMatch(img);
+    resultImg.src = match;
+    statusEl.textContent = "Match found!";
+  };
+});
+
+/* ------------------ Init ------------------ */
+(async function init() {
+  await startCamera();
+  await loadModel();
+  await preloadEmbeddings();
+})();
+</script>
 
 </body>
 </html>
