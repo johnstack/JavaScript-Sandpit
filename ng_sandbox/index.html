@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Collection Entry</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    img {
+      max-width: 90vw;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="title">Loading...</h1>
+    <img id="image" alt="Random collection item" />
+  </div>
+
+  <script>
+    fetch('https://johnstack.github.com/ng_sandbox/collection.json')
+      .then(response => response.json())
+      .then(data => {
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('collection.json is empty or not an array');
+        }
+
+        const randomEntry = data[Math.floor(Math.random() * data.length)];
+
+        document.getElementById('title').textContent = randomEntry['Title'] || 'Untitled';
+        document.getElementById('image').src = randomEntry['Image URL'] || '';
+      })
+      .catch(error => {
+        document.getElementById('title').textContent = 'Error loading collection';
+        console.error(error);
+      });
+  </script>
+</body>
+</html>
