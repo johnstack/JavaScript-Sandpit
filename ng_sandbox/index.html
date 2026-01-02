@@ -3,48 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Random Collection Entry</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: Arial, Helvetica, sans-serif;
-      background-color: #f5f5f5;
-    }
+  <title>ML Image Similarity Browser</title>
 
-    .container {
-      text-align: center;
-    }
+  <!-- TensorFlow.js + MobileNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
 
-    h1 {
-      margin-bottom: 20px;
-    }
-
-    img {
-      max-width: 90vw;
-      max-height: 70vh;
-      object-fit: contain;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1 id="title">Loading...</h1>
-    <img id="image" alt="Random collection item" />
-  </div>
-
-  <script>
-    fetch('https:/<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Collection Browser</title>
   <style>
     body {
       margin: 0;
@@ -72,16 +36,11 @@
       transform: scale(0.95);
     }
 
-    h1 {
-      margin-bottom: 20px;
-    }
-
     .main img {
       max-width: 60vw;
       max-height: 70vh;
-      object-fit: contain;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .similar {
@@ -108,43 +67,51 @@
 <body>
   <div class="layout">
     <div class="main" id="main">
-      <h1 id="title">Loading...</h1>
-      <img id="image" />
+      <h1 id="title">Loading model…</h1>
+      <img id="image" crossorigin="anonymous" />
     </div>
     <div class="similar" id="similar"></div>
   </div>
 
   <script>
     let collection = [];
+    let model;
     let currentIndex = 0;
 
-    // --- Simple ML: TF-IDF cosine similarity on titles ---
-    function tokenize(text) {
-      return text.toLowerCase().split(/\W+/).filter(Boolean);
+    async function loadModel() {
+      model = await mobilenet.load({ version: 2, alpha: 1.0 });
     }
 
-    function buildTf(tokens) {
-      const tf = {};
-      tokens.forEach(t => tf[t] = (tf[t] || 0) + 1);
-      return tf;
+    async function embedImage(url) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = url;
+        img.onload = async () => {
+          const embedding = model.infer(img, true);
+          const values = await embedding.data();
+          embedding.dispose();
+          resolve(Array.from(values));
+        };
+      });
     }
 
     function cosine(a, b) {
       let dot = 0, magA = 0, magB = 0;
-      for (const k in a) {
-        if (b[k]) dot += a[k] * b[k];
-        magA += a[k] * a[k];
+      for (let i = 0; i < a.length; i++) {
+        dot += a[i] * b[i];
+        magA += a[i] * a[i];
+        magB += b[i] * b[i];
       }
-      for (const k in b) magB += b[k] * b[k];
-      return dot / (Math.sqrt(magA) * Math.sqrt(magB) || 1);
+      return dot / (Math.sqrt(magA) * Math.sqrt(magB));
     }
 
     function findSimilar(index, count = 4) {
-      const baseTf = collection[index].tf;
+      const base = collection[index].embedding;
       return collection
         .map((item, i) => ({
           index: i,
-          score: i === index ? -1 : cosine(baseTf, item.tf)
+          score: i === index ? -1 : cosine(base, item.embedding)
         }))
         .sort((a, b) => b.score - a.score)
         .slice(0, count);
@@ -160,36 +127,38 @@
         document.getElementById('title').textContent = item.Title;
         document.getElementById('image').src = item['Image URL'];
 
-        const similarDiv = document.getElementById('similar');
-        similarDiv.innerHTML = '';
+        const similar = document.getElementById('similar');
+        similar.innerHTML = '';
 
         findSimilar(index).forEach(sim => {
           const img = document.createElement('img');
           img.src = collection[sim.index]['Image URL'];
           img.title = collection[sim.index].Title;
           img.onclick = () => render(sim.index);
-          similarDiv.appendChild(img);
+          similar.appendChild(img);
         });
 
         main.classList.remove('fade');
       }, 300);
     }
 
-    fetch('https://johnstack.github.io/JavaScript-Sandpit/ng_sandbox/collection.json')
-      .then(r => r.json())
-      .then(data => {
-        collection = data.map(item => ({
-          ...item,
-          tf: buildTf(tokenize(item.Title || ''))
-        }));
+    async function init() {
+      await loadModel();
 
-        const start = Math.floor(Math.random() * collection.length);
-        render(start);
-      })
-      .catch(err => {
-        document.getElementById('title').textContent = 'Failed to load collection';
-        console.error(err);
-      });
+      const data = await fetch('https://johnstack.github.io/JavaScript-Sandpit/ng_sandbox/collection.json').then(r => r.json());
+      document.getElementById('title').textContent = 'Analyzing images…';
+
+      collection = [];
+      for (const item of data) {
+        const embedding = await embedImage(item['Image URL']);
+        collection.push({ ...item, embedding });
+      }
+
+      const start = Math.floor(Math.random() * collection.length);
+      render(start);
+    }
+
+    init();
   </script>
 </body>
 </html>
