@@ -9,3 +9,4 @@ Messing about with JavaScript
 * https://johnstack.github.io/JavaScript-Sandpit/trippy_cursor_colours.html
 * https://johnstack.github.io/JavaScript-Sandpit/dots_track_mouse_coordinates
 * https://johnstack.github.io/JavaScript-Sandpit/clock_demo/
+* https://johnstack.github.io/JavaScript-Sandpit/slideshow_on_hover.html
